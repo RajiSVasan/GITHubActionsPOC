@@ -1,3 +1,3 @@
 public class actionsPOCApex {
-public String testString;
+public String testString4;
 }

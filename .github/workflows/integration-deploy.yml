@@ -1,0 +1,40 @@
+# Unique name for this workflow
+name: Salesforce CI
+
+# Definition when the workflow should run
+on:
+    push:
+        branches:
+            - 'integration'
+# Jobs to be executed
+jobs:
+    integration-branch-deploy:
+        runs-on: ubuntu-latest
+        steps:
+            # Install Salesforce CLI
+            - name: 'Install Salesforce CLI'
+              run: |
+                  wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
+                  mkdir ~/sfdx
+                  tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
+                  echo "$HOME/sfdx/bin" >> $GITHUB_PATH
+                  ~/sfdx/bin/sfdx version
+
+            # Checkout the source code
+            - name: 'Checkout source code'
+              uses: actions/checkout@v2
+            # The URL is stored in the Github Secret named SFDX_INTEGRATION_URL
+            # so here we store the URL into a text file
+            - name: 'Populate auth file with SFDX_URL secret of integration org'
+              shell: bash
+              run: |
+                  echo ${{ secrets.SFDX_INTEGRATION_URL}} > ./SFDX_INTEGRATION_URL.txt
+
+            # Authenticate to org using the URL stored in the text file
+            - name: 'Authenticate to Integration Org'
+              run: sfdx auth:sfdxurl:store -f ./SFDX_INTEGRATION_URL.txt -s -a integration
+
+
+            # Deploy the integration org
+            - name: 'Deploy the experience cloud site'
+              run: sfdx force:source:deploy --sourcepath="force-app/main/default" --apiversion=52.0 -u integration
